@@ -19,6 +19,33 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.jobstores.base import ConflictingIdError
 from dotenv import load_dotenv
 
+# === analytics (events) ===
+import csv
+from threading import Lock
+
+EVENTS_FILE = "events.csv"
+_events_lock = Lock()
+
+def track_event(user, event: str, data: dict | None = None):
+    """Записывает событие в CSV: ts, user_id, username, event, data(json)"""
+    row = {
+        "ts": datetime.datetime.now(tz=TZ).isoformat(timespec="seconds"),
+        "user_id": getattr(user, "id", None),
+        "username": getattr(user, "username", "") or "",
+        "event": event,
+        "data": json.dumps(data or {}, ensure_ascii=False),
+    }
+    with _events_lock:
+        newfile = not os.path.exists(EVENTS_FILE)
+        with open(EVENTS_FILE, "a", encoding="utf-8", newline="") as f:
+            w = csv.DictWriter(f, fieldnames=row.keys())
+            if newfile:
+                w.writeheader()
+            w.writerow(row)
+# === /analytics ===
+
+
+
 # =========================
 # ENV & BASE
 # =========================
@@ -338,6 +365,12 @@ def schedule_daily():
 # =========================
 @bot.message_handler(commands=["start"])
 def cmd_start(m):
+        # analytics: кто зашёл и откуда (deep-link payload)
+    payload = ""
+    if m.text and " " in m.text:
+        payload = m.text.split(" ", 1)[1].strip()
+    track_event(m.from_user, "cmd_start", {"payload": payload})
+
     kb = types.InlineKeyboardMarkup(row_width=2)
     kb.add(
         types.InlineKeyboardButton("RU", callback_data="lang:ru"),
@@ -358,6 +391,10 @@ def cmd_language(m):
 def on_lang(c: types.CallbackQuery):
     bot.answer_callback_query(c.id)
     lang = c.data.split(":", 1)[1]
+
+    # analytics
+    track_event(c.from_user, "lang_set", {"lang": lang})
+
     set_lang(c.from_user.id, lang)
     apply_commands(c.message.chat.id, lang)
     
@@ -379,6 +416,7 @@ def on_lang(c: types.CallbackQuery):
 # =========================
 @bot.message_handler(commands=["status"])
 def cmd_status(m):
+    track_event(m.from_user, "cmd_status")
     bot.send_message(m.chat.id, L(m.from_user.id, "status"))
 
 @bot.message_handler(commands=["channel"])
@@ -451,6 +489,7 @@ def _catalog_detail_kb(user_id: int, current_key: str) -> types.InlineKeyboardMa
 
 @bot.message_handler(commands=["catalog"])
 def cmd_catalog(m):
+    track_event(m.from_user, "cmd_catalog")
     if get_lang(m.from_user.id) not in ("ru", "en"):
         set_lang(m.from_user.id, "en")
     bot.send_message(m.chat.id, L(m.from_user.id, "catalog_title"), reply_markup=_catalog_grid_kb(m.from_user.id))
@@ -463,6 +502,8 @@ def on_catalog_click(c: types.CallbackQuery):
     try:
         if data.startswith("pkg:"):
             key = data.split(":", 1)[1]
+            # analytics
+            track_event(c.from_user, "catalog_pkg", {"key": key})
             text = _catalog_detail_text(uid, key)
             kb = _catalog_detail_kb(uid, key)
             bot.edit_message_text(
@@ -472,14 +513,20 @@ def on_catalog_click(c: types.CallbackQuery):
                 reply_markup=kb,
                 disable_web_page_preview=True
             )
+
         elif data == "nav:back":
+            # analytics
+            track_event(c.from_user, "catalog_back")
             bot.edit_message_text(
                 L(uid, "catalog_title"),
                 chat_id=c.message.chat.id,
                 message_id=c.message.message_id,
                 reply_markup=_catalog_grid_kb(uid)
             )
+
         elif data == "promo:sale":
+            # analytics
+            track_event(c.from_user, "promo_open")
             txt = MSG["ru"]["sale"] if get_lang(uid) == "ru" else MSG["en"]["sale"]
             kb = types.InlineKeyboardMarkup()
             kb.add(types.InlineKeyboardButton(L(uid, "back_catalog"), callback_data="nav:back"))
@@ -494,21 +541,27 @@ def on_catalog_click(c: types.CallbackQuery):
             )
     except Exception as e:
         logger.error(f"Catalog error: {e}")
-        bot.answer_callback_query(c.id, "Error, try again")
+        try:
+            bot.answer_callback_query(c.id, "Error, try again")
+        except Exception:
+            pass
 
 @bot.callback_query_handler(func=lambda c: c.data and c.data.startswith("m:"))
 def on_menu_click(c: types.CallbackQuery):
     user_id = c.from_user.id
     action = c.data.split(":", 1)[1]
-    
+
+    # analytics
+    track_event(c.from_user, "menu_click", {"action": action})
+
     bot.answer_callback_query(c.id)
-    
+
     if action == "status":
         text = L(user_id, "status")
         kb = types.InlineKeyboardMarkup()
         kb.add(types.InlineKeyboardButton(L(user_id, "back_main"), callback_data="m:main"))
         bot.edit_message_text(text, c.message.chat.id, c.message.message_id, reply_markup=kb)
-    
+
     elif action == "channel":
         url = channel_link()
         text = L(user_id, "channel_here")
@@ -516,8 +569,14 @@ def on_menu_click(c: types.CallbackQuery):
         if url:
             kb.add(types.InlineKeyboardButton(L(user_id, "go_channel"), url=url))
         kb.add(types.InlineKeyboardButton(L(user_id, "back_main"), callback_data="m:main"))
-        bot.edit_message_text(text, c.message.chat.id, c.message.message_id, reply_markup=kb, disable_web_page_preview=True)
-    
+        bot.edit_message_text(
+            text,
+            c.message.chat.id,
+            c.message.message_id,
+            reply_markup=kb,
+            disable_web_page_preview=True
+        )
+
     elif action == "news":
         url = channel_link()
         text = f"{L(user_id, 'one_news_intro')}\n\n{one_news_line()}"
@@ -525,7 +584,13 @@ def on_menu_click(c: types.CallbackQuery):
         if url:
             kb.add(types.InlineKeyboardButton(L(user_id, "go_channel"), url=url))
         kb.add(types.InlineKeyboardButton(L(user_id, "back_main"), callback_data="m:main"))
-        bot.edit_message_text(text, c.message.chat.id, c.message.message_id, reply_markup=kb, disable_web_page_preview=True)
+        bot.edit_message_text(
+            text,
+            c.message.chat.id,
+            c.message.message_id,
+            reply_markup=kb,
+            disable_web_page_preview=True
+        )
     
     elif action == "catalog":
         text = L(user_id, "catalog_title")
@@ -575,6 +640,7 @@ def on_menu_click(c: types.CallbackQuery):
 # =========================
 @bot.message_handler(commands=['tip'])
 def cmd_tip(m):
+    track_event(m.from_user, "tip_open")
     prices = [
         types.LabeledPrice(L(m.from_user.id, "tip_btn_1"), 500),   # 5.00 Stars
         types.LabeledPrice(L(m.from_user.id, "tip_btn_2"), 2000),  # 20.00 Stars
@@ -596,8 +662,11 @@ def checkout(q):
 
 @bot.message_handler(content_types=['successful_payment'])
 def got_payment(m):
-    bot.send_message(m.chat.id, L(m.from_user.id, "thanks_tip"))
+    sp = m.successful_payment
+    # analytics
+    track_event(m.from_user, "tip_paid", {"amount": sp.total_amount, "currency": sp.currency})
 
+    bot.send_message(m.chat.id, L(m.from_user.id, "thanks_tip"))
 
 # RUN
 
