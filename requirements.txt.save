@@ -1,0 +1,8 @@
+pytelegrambotapi==4.14.0
+python-dotenv==1.0.0
+apscheduler==3.10.4
+requests==2.31.0
+python-dateutil
+python3 bot.py
+ls -la
+

@@ -3,6 +3,7 @@ import datetime
 import json
 from threading import Lock
 from zoneinfo import ZoneInfo
+from pathlib import Path
 
 TZ = ZoneInfo("America/Los_Angeles")
 EVENTS_FILE = "data/events.csv"

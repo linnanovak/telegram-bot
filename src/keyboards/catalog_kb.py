@@ -45,3 +45,6 @@ def _catalog_detail_text(user_langs, user_id: int, key: str) -> str:
         "ai_ultra": MSG[lang]["card_ai_ultra"],
     }
     return mapping.get(key, "…")
+
+def _catalog_grid_kb(user_langs, user_id: int):
+    return build_catalog_keyboard(user_langs, user_id)
