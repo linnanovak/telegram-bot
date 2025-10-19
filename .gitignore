@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Environment
+.env
+.venv
+env/
+venv/
+
+# Data files
+data/logs/
+data/events.csv
+data/user_lang.json
+
+# OS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/

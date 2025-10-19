@@ -7,7 +7,7 @@ def setup_mobile_handlers(bot, L, build_main_menu):
     """
     Устанавливает обработчики для исправления проблем на мобильных устройствах.
     :param bot: объект TeleBot.
-    :param L: функция-переводчик из bot.py.
+    :param L: функция-переводчик.
     :param build_main_menu: функция для создания главного меню.
     """
     
@@ -38,4 +38,3 @@ def setup_mobile_handlers(bot, L, build_main_menu):
             bot.answer_callback_query(c.id, "Не удалось обновить меню. Попробуйте снова.")
 
     logger.info("Mobile fix handlers installed")
-
