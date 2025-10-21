@@ -13,7 +13,9 @@ def setup_user_logger():
     user_logger.setLevel(logging.INFO)
     
     log_file = Path("data/logs/users.log")
-    log_file.parent.mkdir(exist_ok=True)
+    
+    # Создаем папки если их нет
+    log_file.parent.mkdir(parents=True, exist_ok=True)
     
     fh = logging.FileHandler(log_file, encoding="utf-8")
     fh.setFormatter(logging.Formatter("%(asctime)s - %(message)s"))
