@@ -18,7 +18,7 @@ def build_catalog_keyboard(user_langs, user_id: int) -> types.InlineKeyboardMark
         types.InlineKeyboardButton(L(user_langs, user_id, "catalog_btn_ai_ultra"), callback_data="pkg:ai_ultra"),
     )
     kb.add(types.InlineKeyboardButton(L(user_langs, user_id, "catalog_btn_sale"), callback_data="promo:sale"))
-    kb.add(types.InlineKeyboardButton(L(user_langs, user_id, "catalog_btn_contact"), url=f"https://t.me/YOUR_USERNAME"))
+    kb.add(types.InlineKeyboardButton(L(user_langs, user_id, "catalog_btn_contact"), url=f"https://t.me/limmzxs"))
     return kb
 
 def _catalog_detail_kb(user_langs, user_id: int, current_key: str) -> types.InlineKeyboardMarkup:
@@ -33,7 +33,7 @@ def _catalog_detail_kb(user_langs, user_id: int, current_key: str) -> types.Inli
         types.InlineKeyboardButton(L(user_langs, user_id, "next"), callback_data=f"pkg:{next_key}"),
     )
     kb.add(types.InlineKeyboardButton(L(user_langs, user_id, "back_main"), callback_data="m:main"))
-    kb.add(types.InlineKeyboardButton(L(user_langs, user_id, "catalog_btn_contact"), url=f"https://t.me/YOUR_USERNAME"))
+    kb.add(types.InlineKeyboardButton(L(user_langs, user_id, "catalog_btn_contact"), url=f"https://t.me/limmzxs"))
     return kb
 
 def _catalog_detail_text(user_langs, user_id: int, key: str) -> str:

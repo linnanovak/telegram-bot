@@ -54,7 +54,7 @@ def setup_catalog_handlers(bot, user_langs, logger):
                 kb = types.InlineKeyboardMarkup()
                 kb.add(types.InlineKeyboardButton(L(user_langs, uid, "back_catalog"), callback_data="nav:back"))
                 kb.add(types.InlineKeyboardButton(L(user_langs, uid, "back_main"), callback_data="m:main"))
-                kb.add(types.InlineKeyboardButton(L(user_langs, uid, "catalog_btn_contact"), url=f"https://t.me/YOUR_USERNAME"))
+                kb.add(types.InlineKeyboardButton(L(user_langs, uid, "catalog_btn_contact"), url=f"https://t.me/limmzxs"))
                 bot.edit_message_text(
                     txt,
                     chat_id=c.message.chat.id,
